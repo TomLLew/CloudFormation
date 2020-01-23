@@ -16,7 +16,7 @@
       stack_name: test-stack
       region: eu-west-2
       template: test-stack.yaml
-  - cloudformtaion_info:
+  - cloudformation_info:
       stack_name: test-stack
       stack_resources: true
     register: output
