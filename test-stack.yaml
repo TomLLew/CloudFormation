@@ -24,7 +24,7 @@ Resources:
 
   AllowHTTP:
     Type: AWS::EC2::SecurityGroup
-    properties:
+    Properties:
       GroupDescription: enable HTTP access
       SecurityGroupIngress:
         IpProtocol: tcp
