@@ -2,32 +2,177 @@ Resources:
   Instance1:
     Type: AWS::EC2::Instance
     Properties:
-      KeyName: CloudFormationKeyPair
-      ImageId: ami-006a0174c6c25ac06
+      KeyName: MSP-1
+      ImageId: ami-061e5f1790cb27257
       InstanceType: t2.micro
       Tags:
         - Key: "Name"
-          Value: "Example"
-      SecurityGroups:
-        - !Ref AllowSSH
-        - !Ref AllowHTTP
+          Value: "Instance-1"
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: "0"
+        GroupSet:
+          - !Ref SecurityGroup
+        SubnetId: !Ref Subnet1
 
-  AllowSSH:
+  Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: MSP-1
+      ImageId: ami-061e5f1790cb27257
+      InstanceType: t2.micro
+      Tags:
+        - Key: "Name"
+          Value: "Instance-2"
+      NetworkInterfaces:
+      - AssociatePublicIpAddress: true
+        DeviceIndex: "0"
+        GroupSet:
+          - !Ref SecurityGroup
+        SubnetId: !Ref Subnet1
+ 
+#Database:
+ # Type: AWS::RDS::DBInstance
+ # Properties:
+ #   DBInstanceClass: db.t2.micro
+ #   Engine: MySQL
+ #   EngineVersion: "5.7.22"
+ #   DBSnapshotIdentifier: "msp-1-db"
+ #   Tags:
+ #     - Key: "Name"
+ #       Value: "Database-MSP"
+ #   NetworkInterfaces:
+ #     - DevicesIndex: "0"
+ #       GroupSet:
+ #         - !Ref AllowSSH
+ #         - !Ref AllowHTTP
+ #         - !Ref Allow3306
+ #       SubnetId:
+ #           !Ref Subnet1
+
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets: 
+        - !Ref Subnet1
+      Instances:
+        - !Ref Instance1
+        - !Ref Instance2
+      Listeners:
+        - LoadBalancerPort: '80'
+          InstancePort: '80'
+          Protocol: HTTP
+      HealthCheck:
+        Target: HTTP:80/
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+        
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: "Name"
+          Value: "MSP-IG"
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: "Name"
+          Value: "MSP-Route"
+  InternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref RouteTable
+  RouteAssociationsubnet1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref RouteTable
+  RouteAssociationsubnet2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref RouteTable
+  RouteAssociationsubnet3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet3
+      RouteTableId: !Ref RouteTable
+  
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags: 
+        - Key: "Name"
+          Value: "MSP-VPC"
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "eu-west-2a"
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: "Subnet1"
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "eu-west-2b"
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: "Subnet2"
+  Subnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "eu-west-2c"
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: "Name"
+          Value: "Subnet3"
+
+
+  SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable SSH access
+      VpcId: !Ref VPC
       SecurityGroupIngress:
-        IpProtocol: tcp
+      - IpProtocol: tcp
         FromPort: '22'
         ToPort: '22'
         CidrIp: 0.0.0.0/0
-
-  AllowHTTP:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: enable HTTP access
-      SecurityGroupIngress:
-        IpProtocol: tcp
+      - IpProtocol: tcp
         FromPort: '80'
         ToPort: '80'
-        CidrIp: 0.0.0.0/0  
+        CidrIp: 0.0.0.0/0 
+      - IpProtocol: tcp
+        FromPort: '3306'
+        ToPort: '3306'
+        CidrIp: 0.0.0.0/0
+
+  
+ 
