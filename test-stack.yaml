@@ -30,6 +30,45 @@ Resources:
         GroupSet:
           - !Ref SecurityGroup
         SubnetId: !Ref Subnet1
+
+  ASGConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: ami-061e5f1790cb27257
+      SecurityGroups:
+        - !Ref SecurityGroup
+      InstanceType: t2.micro
+      LaunchConfigurationName: ASGConfig
+  ASGexampleGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: ASGexampleGroup
+      MetricsCollection:
+        - 
+          Granularity: "1Minute"
+          Metrics:
+            - "GroupMinSize"
+            - "GroupMaxSize"
+      AvailabilityZones:
+        - eu-west-2a
+        - eu-west-2b
+        - eu-west-2c
+      LaunchConfigurationName: ASGConfig
+      MinSize: '2'
+      MaxSize: '5'
+      LoadBalancerNames:
+        - !Ref LoadBalancer
+      Tags:
+        - Key: "Name"
+          Value: "ASGexampleGroup"
+          PropagateAtLaunch: true
+      VPCZoneIdentifier:
+        - !Ref Subnet1
+        - !Ref Subnet2
+        - !Ref Subnet3
+    DependsOn:
+      - LoadBalancer
+      - ASGConfig
  
 #Database:
  # Type: AWS::RDS::DBInstance
